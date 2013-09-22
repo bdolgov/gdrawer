@@ -65,7 +65,13 @@ void MainWindow::open(QString name)
 	
 	path = name;
 	pathLabel->setText(QFileInfo(name).baseName());
-	formula.clear();
+}
+
+QString MainWindow::getFormula(const QString& filename)
+{
+	QString formula;
+	QFile f(filename);
+	f.open(QIODevice::ReadOnly | QIODevice::Text);
 	int lineNumber = 0;
 	while (!f.atEnd())
 	{
@@ -97,6 +103,7 @@ void MainWindow::open(QString name)
 		formula.append(line);
 		++lineNumber;
 	}
+	return formula;
 }
 
 void MainWindow::draw()
@@ -105,15 +112,45 @@ void MainWindow::draw()
 		QPointF(x1->text().toDouble(), y1->text().toDouble()),
 		QPointF(x2->text().toDouble(), y2->text().toDouble()));
 
-	picture->setPixmap(QPixmap::fromImage(drawFormula(formula, rect, picture->size())));
+	picture->setPixmap(QPixmap::fromImage(drawFormula(getFormula(path), rect, picture->size())));
 }
 
 void MainWindow::view()
 {
+	auto form = new FileEditor(path);
+	form->setAttribute(Qt::WA_DeleteOnClose);
+	connect(form, SIGNAL(destroyed(QObject*)), this, SLOT(draw()));
+	form->show();
+}
+
+FileEditor::FileEditor(const QString& _path): path(_path)
+{
+	QGridLayout *layout = new QGridLayout;
+
+	QPushButton *saveButton = new QPushButton(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), "Save");
+	connect(saveButton, SIGNAL(clicked()), this, SLOT(save()));
+	layout->addWidget(saveButton, 0, 0);
+
+	edit = new QTextEdit;
 	QFile f(path);
 	f.open(QIODevice::ReadOnly | QIODevice::Text);
-	QTextEdit *edit = new QTextEdit();
-	edit->setText(QString::fromUtf8(f.readAll()));
-	edit->setAttribute(Qt::WA_DeleteOnClose);
-	edit->show();
+	edit->setPlainText(QString::fromUtf8(f.readAll()));
+	layout->addWidget(edit, 1, 0);
+
+	setLayout(layout);
+}
+
+void FileEditor::save()
+{
+	QFile f(path);
+	if (!f.open(QIODevice::WriteOnly | QIODevice::Text))
+	{
+		QMessageBox::warning(this, tr("GDrawer"), tr("Cannot open file for writing"));
+		return;
+	}
+	f.write(edit->toPlainText().toUtf8());
+}
+
+void FileEditor::closeEvent(QCloseEvent* event)
+{
 }

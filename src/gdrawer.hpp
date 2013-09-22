@@ -189,6 +189,8 @@ struct unop_t : expr_t
 
 class QLabel;
 class QLineEdit;
+class QTextEdit;
+class QCloseEvent;
 
 class MainWindow : public QWidget
 {
@@ -197,9 +199,9 @@ class MainWindow : public QWidget
 		QLabel *picture;
 		QLineEdit *x1, *y1, *x2, *y2;
 		QLabel *pathLabel;
-		QString formula;
 		QString path;
 		void resetRect();
+		QString getFormula(const QString& filename);
 
 	public slots:
 		void open();
@@ -209,6 +211,23 @@ class MainWindow : public QWidget
 
 	public:
 		MainWindow();
+};
+
+class FileEditor : public QWidget
+{
+	Q_OBJECT
+	private:
+		QTextEdit *edit;
+		QString path;
+	
+	protected:
+		void closeEvent(QCloseEvent *event);
+
+	public slots:
+		void save();
+
+	public:
+		FileEditor(const QString& _path);
 };
 
 QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& viewport);
