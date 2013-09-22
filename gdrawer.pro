@@ -10,6 +10,10 @@ macx
 {
 	INCLUDEPATH += /usr/local/Cellar/boost/1.53.0/include
 }
+win32
+{
+	INCLUDEPATH += x:/boost
+}
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Wextra
 QMAKE_CXXFLAGS_RELEASE += -std=c++11 -Wall -Wextra
 CONFIG += debug
