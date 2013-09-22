@@ -35,7 +35,7 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
 		term
 			= factor[_val = _1] >> 
 				*( (char_("/*") >> factor)[_val = new_<binop_t>(_1, _val, _2)] 
-				| factor[_val = new_<binop_t>('*', _val, _1)] );
+				| !lit('-') >> factor[_val = new_<binop_t>('*', _val, _1)] );
 		
 		expr
 			= term[_val = _1] >> *(char_("+-") >> term)[_val = new_<binop_t>(_1, _val, _2)]
