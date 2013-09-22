@@ -1,4 +1,5 @@
 #include "gdrawer.hpp"
+#include <QDebug>
 
 void const_t::addInstr(Instrs* instrs)
 {
@@ -23,6 +24,14 @@ void unop_t::addInstr(Instrs* instrs)
 	instrs->emplace_back(op == '-' ? 'm' : op);
 }
 
+void Instrs::dump()
+{
+	for (auto& i : *this)
+	{
+		qDebug() << i.type << char(i.arg + 'a') << double(i.val);
+	}
+}
+
 real_t Instrs::execute(Ctx* ctx)
 {
 	ctx->reset();
@@ -38,19 +47,27 @@ real_t Instrs::execute(Ctx* ctx)
 				ctx->push(ctx->vars[static_cast<int>(i.arg)]);
 				break;
 			case '+':
-				a = ctx->pop(); b = ctx->pop();
+				b = ctx->pop(); a = ctx->pop();
 				ctx->push(a + b);
 				break;
 			case '-':
-				a = ctx->pop(); b = ctx->pop();
+				b = ctx->pop(); a = ctx->pop();
 				ctx->push(a - b);
 				break;
 			case '*':
-				a = ctx->pop(); b = ctx->pop();
-				ctx->push(a * b);
+				b = ctx->pop(); a = ctx->pop();
+				if ((a < ctx->eps && a > -ctx->eps) || (b < ctx->eps && b > -ctx->eps))
+				{
+					ctx->push(0);
+				}
+				else
+				{
+					real_t c = a * b;
+					ctx->push(c < ctx->eps && c > -ctx->eps ? 2 * ctx->eps : c);
+				}
 				break;
 			case '/':
-				a = ctx->pop(); b = ctx->pop();
+				b = ctx->pop(); a = ctx->pop();
 				ctx->push(a / b);
 				break;
 			case 'm':
@@ -59,8 +76,12 @@ real_t Instrs::execute(Ctx* ctx)
 			case '|':
 				ctx->push(fabsl(ctx->pop()));
 				break;
+			case '^':
+				b = ctx->pop(); a = ctx->pop();
+				ctx->push(powl(a, b));
+				break;
 			default:
-				;
+				throw std::runtime_error("Unknown instruction");
 		}
 	}
 	return ctx->pop();

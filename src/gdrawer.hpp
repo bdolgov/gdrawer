@@ -3,25 +3,38 @@
 
 #include <memory>
 #include <vector>
+#include <array>
 #include <ctype.h>
 #include <QString>
+#include <QWidget>
+#include <QImage>
 
-typedef long double real_t;
+typedef double real_t;
+
+#define EPS (1e-2)
+
+extern real_t epsCoeff;
 
 struct Ctx
 {
 	std::unique_ptr<real_t[]> origStack;
-	real_t *stack, *vars;
+	std::array<float_t, 26> vars;
+	real_t *stack;
+	real_t eps;
 
-	Ctx(int stackSize, real_t *_vars): origStack(new real_t[stackSize]), stack(origStack.get()), vars(_vars) {}
+	Ctx(int stackSize): origStack(new real_t[stackSize]), stack(origStack.get()), eps(EPS) {}
 	void reset() { stack = origStack.get(); }
 	inline void push(real_t val)
 	{
-		*(++stack) = val;
+		*(stack++) = val;
 	}
 	inline real_t pop()
 	{
-		return *(stack--);
+		return *(--stack);
+	}
+	inline real_t top()
+	{
+		return *(stack - 1);
 	}
 };
 
@@ -39,6 +52,7 @@ struct Instrs : public std::vector<Instr>
 	int requiredStackSize;
 	real_t execute(Ctx* ctx);
 	static Instrs get(const QString& expr);
+	void dump();
 };
 
 struct expr_t
@@ -82,5 +96,30 @@ struct unop_t : expr_t
 	void addInstr(Instrs* instrs);
 };
 
+class QLabel;
+class QLineEdit;
+
+class MainWindow : public QWidget
+{
+	Q_OBJECT
+	private:
+		QLabel *picture;
+		QLineEdit *x1, *y1, *x2, *y2;
+		QLabel *pathLabel;
+		QString formula;
+		QString path;
+		void resetRect();
+
+	public slots:
+		void open();
+		void open(QString path);
+		void draw();
+		void view();
+
+	public:
+		MainWindow();
+};
+
+QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& viewport);
 
 #endif
