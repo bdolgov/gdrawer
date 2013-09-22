@@ -1,27 +1,114 @@
 #include "gdrawer.hpp"
 #include <QDebug>
 
-void const_t::addInstr(Instrs* instrs)
+void const_t::addInstr(Instrs* instrs) const
 {
 	instrs->emplace_back('C', 0, val);
 }
 
-void var_t::addInstr(Instrs* instrs)
+void var_t::addInstr(Instrs* instrs) const
 {
 	instrs->emplace_back('V', name - 'a');
 }
 
-void binop_t::addInstr(Instrs* instrs)
+void binop_t::addInstr(Instrs* instrs) const
 {
+	if (op == '^')
+	{
+		/* Optimize a ^ 2 to a * a */
+		if (auto c = dynamic_cast<const const_t*>(&*r))
+		{
+			int p = c->val;
+			if (fabs(p - c->val) < EPS && 1 <= p && p <= 4)
+			{
+				l->addInstr(instrs);
+				for (int i = 1; i < p; ++i)
+				{
+					instrs->emplace_back('D');
+				}
+				for (int i = 1; i < p; ++i)
+				{
+					instrs->emplace_back('*');
+				}
+				return;
+			}
+		}
+	}
+
+	if (op == '+' || op == '-')
+	{
+		/* Optimize subexpressions like |x| + x */
+		if (auto l2 = dynamic_cast<const unop_t*>(&*l))
+		{
+			if (l2->l->equalsTo(&*r))
+			{
+				r->addInstr(instrs);
+				instrs->emplace_back('D');
+				instrs->emplace_back(l2->opcode());
+				if (op == '-') instrs->emplace_back('S');
+				instrs->emplace_back(op);
+				return;
+			}
+		}
+		
+		if (auto r2 = dynamic_cast<const unop_t*>(&*r))
+		{
+			if (l->equalsTo(&*r2->l))
+			{
+				l->addInstr(instrs);
+				instrs->emplace_back('D');
+				instrs->emplace_back(r2->opcode());
+				instrs->emplace_back(op);
+				return;
+			}
+		}
+	}
+		
 	l->addInstr(instrs);
 	r->addInstr(instrs);
-	instrs->emplace_back(op);
+	instrs->emplace_back(opcode());
 }
 
-void unop_t::addInstr(Instrs* instrs)
+void unop_t::addInstr(Instrs* instrs) const
 {
 	l->addInstr(instrs);
-	instrs->emplace_back(op == '-' ? 'm' : op);
+	instrs->emplace_back(opcode());
+}
+
+bool const_t::equalsTo(const expr_t* other) const
+{
+	if (auto c = dynamic_cast<const const_t*>(other))
+	{
+		return fabs(val - c->val) < EPS;
+	}
+	return false;
+}
+
+bool var_t::equalsTo(const expr_t* other) const
+{
+	if (auto v = dynamic_cast<const var_t*>(other))
+	{
+		return name == v->name;
+	}
+	return false;
+}
+
+bool binop_t::equalsTo(const expr_t* other) const
+{
+	if (auto b = dynamic_cast<const binop_t*>(other))
+	{
+		return op == b->op && l->equalsTo(&*b->l) && r->equalsTo(&*b->r);
+	}
+	return false;
+}
+
+bool unop_t::equalsTo(const expr_t* other) const
+{
+	if (auto u = dynamic_cast<const unop_t*>(other))
+	{
+		return op == u->op && l->equalsTo(&*u->l);
+	}
+	return false;
 }
 
 void Instrs::dump()
@@ -71,6 +158,12 @@ Real Instrs::execute(Ctx* ctx)
 			case '^':
 				b = ctx->pop(); a = ctx->pop();
 				ctx->push(a.pow(b));
+				break;
+			case 'D':
+				ctx->push(ctx->top());
+				break;
+			case 'S':
+				ctx->swap();
 				break;
 			default:
 				throw std::runtime_error("Unknown instruction");

@@ -113,6 +113,10 @@ struct Ctx
 	{
 		return *(stack - 1);
 	}
+	inline void swap()
+	{
+		std::swap(*(stack - 1), *(stack - 2));
+	}
 };
 
 struct Instr
@@ -134,25 +138,31 @@ struct Instrs : public std::vector<Instr>
 
 struct expr_t
 {
-	virtual int getDepth() = 0;
-	virtual void addInstr(Instrs* instrs) = 0;
+	virtual int getDepth() const = 0;
+	virtual void addInstr(Instrs* instrs) const = 0;
 	virtual ~expr_t() {}
+	virtual bool equalsTo(const expr_t* other) const = 0;
+	virtual char opcode() const = 0;
 };
 
 struct const_t : expr_t
 {
 	real_t val;
 	const_t(float_t _val): val(_val) {}
-	int getDepth() { return 1; }
-	void addInstr(Instrs* instrs);
+	int getDepth() const { return 1; }
+	void addInstr(Instrs* instrs) const;
+	bool equalsTo(const expr_t* other) const;
+	char opcode() const { return 'C'; }
 };
 
 struct var_t : expr_t
 {
 	char name;
 	var_t(char _name): name(tolower(_name)) {}
-	int getDepth() { return 1; }
-	void addInstr(Instrs* instrs);
+	int getDepth() const { return 1; }
+	void addInstr(Instrs* instrs) const;
+	bool equalsTo(const expr_t* other) const;
+	char opcode() const { return 'V'; }
 };
 
 struct binop_t : expr_t
@@ -160,8 +170,10 @@ struct binop_t : expr_t
 	char op;
 	std::unique_ptr<expr_t> l, r;
 	binop_t(char _op, expr_t* _l, expr_t* _r = NULL): op(_op), l(_l), r(_r) {}
-	int getDepth() { return l->getDepth() + r->getDepth(); }
-	void addInstr(Instrs* instrs);
+	int getDepth() const { return 1 + std::max(l->getDepth(), r->getDepth()); }
+	void addInstr(Instrs* instrs) const;
+	bool equalsTo(const expr_t* other) const;
+	char opcode() const { return op; }
 };
 
 struct unop_t : expr_t
@@ -169,8 +181,10 @@ struct unop_t : expr_t
 	char op;
 	std::unique_ptr<expr_t> l;
 	unop_t(char _op, expr_t* _l): op(_op), l(_l) {}
-	int getDepth() { return l->getDepth(); }
-	void addInstr(Instrs* instrs);
+	int getDepth() const { return l->getDepth(); }
+	void addInstr(Instrs* instrs) const;
+	bool equalsTo(const expr_t* other) const;
+	char opcode() const { return op == '-' ? 'm' : op; }
 };
 
 class QLabel;
