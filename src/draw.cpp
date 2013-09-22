@@ -24,7 +24,6 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	vm.dump();
 	int threads = QThread::idealThreadCount();
 	if (threads == -1) threads = 2;
-//	threads = 1;
 	QImage ret(viewport, QImage::Format_Indexed8);
 	qDebug() << "viewport: " << viewport;
 	ret.setColor(0, qRgb(255, 255, 255));
@@ -53,8 +52,6 @@ Task::Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs* _v
 {
 }
 
-real_t epsCoeff = 3;
-
 void Task::run()
 {
 	float_t dx = static_cast<float_t>(rect.width()) / viewport.width(),
@@ -63,19 +60,18 @@ void Task::run()
 			x = 0;
 	int pxEnd = viewport.right() + 1, pyEnd = viewport.bottom() + 1;
 	Ctx ctx(vm->requiredStackSize);
-	ctx.eps = epsCoeff * std::max(dy, dx);
 	qDebug() << viewport.top() << pyEnd;
 	for (int py = viewport.top(); py != pyEnd; ++py, y += dy)
 	{
 		x = rect.left();
 		uchar *line = img->scanLine(py);
-		ctx.vars['y' - 'a'] = y;
+		ctx.vars['y' - 'a'] = Real(y, y + dy);
 		for (int px = 0; px != pxEnd; ++px, x += dx)
 		{
-			ctx.vars['x' - 'a'] = x;
+			ctx.vars['x' - 'a'] = Real(x, x + dx);
 			ctx.reset();
-		//	qDebug() << double(x) << double(y) << double(vm->execute(&ctx));
-			line[px] = fabs(vm->execute(&ctx)) < ctx.eps;
+			Real res = vm->execute(&ctx);
+			line[px] = res.isZero();
 		}
 	}
 }

@@ -11,28 +11,105 @@
 
 typedef double real_t;
 
-#define EPS (1e-2)
+#define EPS (1e-5)
 
-extern real_t epsCoeff;
+struct RangeReal
+{
+	real_t min, max;
+	RangeReal(): min(0), max(0) {}
+	RangeReal(real_t val): min(val), max(val) {}
+	RangeReal(real_t _min, real_t _max): min(_min), max(_max) {}
+	RangeReal operator+(const RangeReal& other) const
+	{
+		return RangeReal(min + other.min, max + other.max);
+	}
+	RangeReal operator-(const RangeReal& other) const
+	{
+		return RangeReal(min - other.max, max - other.min);
+	}
+	RangeReal operator-() const
+	{
+		return RangeReal(-max, -min);
+	}
+	RangeReal operator*(const RangeReal& other) const
+	{
+		real_t a = min * other.min, b = min * other.max,
+			   c = max * other.min, d = max * other.max;
+		return RangeReal(std::min({a, b, c, d}), std::max({a, b, c, d}));
+	}
+	RangeReal operator/(const RangeReal& other) const
+	{
+		real_t a = min / other.min, b = min / other.max,
+			   c = max / other.min, d = max / other.max;
+		return RangeReal(std::min({a, b, c, d}), std::max({a, b, c, d}));
+	}
+	RangeReal pow(const RangeReal& other) const
+	{
+		if (min <= EPS && max >= -EPS)
+		{
+			return RangeReal(0, std::pow(std::max(-min, max), other.max));
+		}
+		else if (max >= 0)
+		{
+			return RangeReal(std::pow(min, other.min), std::pow(max, other.max));
+		}
+		else
+		{
+			int o = other.max;
+			if (std::fabs(other.max - o) > EPS)
+			{
+				throw std::runtime_error("a^b, a < 0 and b is not integer");
+			}
+			if (o % 2 == 0)
+			{
+				return RangeReal(std::pow(max, o), std::pow(min, o));
+			}
+			else
+			{
+				return RangeReal(std::pow(min, o), std::pow(max, o));
+			}
+		}
+	}
+	RangeReal abs() const
+	{
+		if (min <= EPS && max >= -EPS)
+		{
+			return RangeReal(0, std::max(-min, max));
+		}
+		else if (max >= 0)
+		{
+			return RangeReal(min, max);
+		}
+		else
+		{
+			return RangeReal(-max, -min);
+		}
+	}
+	bool isZero() const
+	{
+		return min <= EPS && max >= -EPS;
+	}
+};
+
+typedef RangeReal Real;
 
 struct Ctx
 {
-	std::unique_ptr<real_t[]> origStack;
-	std::array<float_t, 26> vars;
-	real_t *stack;
-	real_t eps;
+	std::unique_ptr<Real[]> origStack;
+	std::array<Real, 26> vars;
+	Real *stack;
 
-	Ctx(int stackSize): origStack(new real_t[stackSize]), stack(origStack.get()), eps(EPS) {}
+	Ctx(int stackSize): origStack(new Real[stackSize]), stack(origStack.get()) {}
 	void reset() { stack = origStack.get(); }
-	inline void push(real_t val)
+	inline void push(const Real& val)
 	{
 		*(stack++) = val;
 	}
-	inline real_t pop()
+	inline Real pop()
 	{
 		return *(--stack);
 	}
-	inline real_t top()
+	inline Real top()
 	{
 		return *(stack - 1);
 	}
@@ -50,7 +127,7 @@ struct Instr
 struct Instrs : public std::vector<Instr>
 {
 	int requiredStackSize;
-	real_t execute(Ctx* ctx);
+	Real execute(Ctx* ctx);
 	static Instrs get(const QString& expr);
 	void dump();
 };

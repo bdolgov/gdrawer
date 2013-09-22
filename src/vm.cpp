@@ -32,10 +32,10 @@ void Instrs::dump()
 	}
 }
 
-real_t Instrs::execute(Ctx* ctx)
+Real Instrs::execute(Ctx* ctx)
 {
 	ctx->reset();
-	real_t a = 0, b = 0;
+	Real a = 0, b = 0;
 	for (auto& i : *this)
 	{
 		switch(i.type)
@@ -56,15 +56,7 @@ real_t Instrs::execute(Ctx* ctx)
 				break;
 			case '*':
 				b = ctx->pop(); a = ctx->pop();
-				if ((a < ctx->eps && a > -ctx->eps) || (b < ctx->eps && b > -ctx->eps))
-				{
-					ctx->push(0);
-				}
-				else
-				{
-					real_t c = a * b;
-					ctx->push(c < ctx->eps && c > -ctx->eps ? 2 * ctx->eps : c);
-				}
+				ctx->push(a * b);
 				break;
 			case '/':
 				b = ctx->pop(); a = ctx->pop();
@@ -74,11 +66,11 @@ real_t Instrs::execute(Ctx* ctx)
 				ctx->push(-ctx->pop());
 				break;
 			case '|':
-				ctx->push(fabsl(ctx->pop()));
+				ctx->push(ctx->pop().abs());
 				break;
 			case '^':
 				b = ctx->pop(); a = ctx->pop();
-				ctx->push(powl(a, b));
+				ctx->push(a.pow(b));
 				break;
 			default:
 				throw std::runtime_error("Unknown instruction");
