@@ -120,26 +120,35 @@ void MainWindow::view()
 {
 	auto form = new FileEditor(path);
 	form->setAttribute(Qt::WA_DeleteOnClose);
-	connect(form, SIGNAL(destroyed(QObject*)), this, SLOT(draw()));
+	connect(form, SIGNAL(saved()), this, SLOT(draw()));
 	form->show();
 }
 
 FileEditor::FileEditor(const QString& _path): path(_path), modified(false)
 {
-	QGridLayout *layout = new QGridLayout;
-
-	QPushButton *saveButton = new QPushButton(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), "Save");
+	QVBoxLayout *layout = new QVBoxLayout;
+	
+	QHBoxLayout *tools = new QHBoxLayout;
+	QPushButton *saveButton = new QPushButton(QApplication::style()->standardIcon(QStyle::SP_DialogSaveButton), tr("Save"));
 	connect(saveButton, SIGNAL(clicked()), this, SLOT(save()));
-	layout->addWidget(saveButton, 0, 0);
+	tools->addWidget(saveButton);
+
+	QPushButton *exitButton = new QPushButton(QApplication::style()->standardIcon(QStyle::SP_DialogCloseButton), tr("Exit"));
+	connect(exitButton, SIGNAL(clicked()), this, SLOT(close()));
+	tools->addWidget(exitButton);
+
+	layout->addLayout(tools);
 
 	edit = new QTextEdit;
 	QFile f(path);
 	f.open(QIODevice::ReadOnly | QIODevice::Text);
 	edit->setPlainText(QString::fromUtf8(f.readAll()));
 	connect(edit, &QTextEdit::textChanged, [this]() { this->modified = true; });
-	layout->addWidget(edit, 1, 0);
+	layout->addWidget(edit);
 
 	setLayout(layout);
+	setMinimumWidth(640);
+	setMinimumHeight(480);
 }
 
 void FileEditor::save()
@@ -152,6 +161,8 @@ void FileEditor::save()
 	}
 	f.write(edit->toPlainText().toUtf8());
 	modified = false;
+	f.close();
+	emit saved();
 }
 
 void FileEditor::closeEvent(QCloseEvent* event)

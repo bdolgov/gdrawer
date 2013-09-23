@@ -227,6 +227,9 @@ class FileEditor : public QWidget
 	public slots:
 		void save();
 
+	signals:
+		void saved();
+
 	public:
 		FileEditor(const QString& _path);
 };
