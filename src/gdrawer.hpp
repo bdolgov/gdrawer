@@ -219,6 +219,7 @@ class FileEditor : public QWidget
 	private:
 		QTextEdit *edit;
 		QString path;
+		bool modified;
 	
 	protected:
 		void closeEvent(QCloseEvent *event);

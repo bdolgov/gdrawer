@@ -6,12 +6,10 @@ TEMPLATE = app
 TARGET = gdrawer
 DEPENDPATH += . src
 INCLUDEPATH += . src
-macx
-{
+macx {
 	INCLUDEPATH += /usr/local/Cellar/boost/1.53.0/include
 }
-win32
-{
+win32 {
 	INCLUDEPATH += x:/boost
 }
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Wextra
@@ -21,3 +19,4 @@ QT += widgets
 # Input
 HEADERS += src/gdrawer.hpp
 SOURCES += src/parse.cpp src/vm.cpp src/main.cpp src/ui.cpp src/draw.cpp
+RESOURCES += gdrawer.qrc

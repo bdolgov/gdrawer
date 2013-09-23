@@ -39,6 +39,7 @@ MainWindow::MainWindow()
 
 	setMinimumWidth(800);
 	setMinimumHeight(600);
+	open(":/demo.txt");
 }
 
 void MainWindow::resetRect()
@@ -51,7 +52,7 @@ void MainWindow::resetRect()
 
 void MainWindow::open()
 {
-	open(QFileDialog::getOpenFileName(this, tr("Open file"), "Text file (*.txt)"));
+	open(QFileDialog::getOpenFileName(this, tr("Open file"), "", "Text file (*.txt)"));
 }
 
 void MainWindow::open(QString name)
@@ -64,7 +65,7 @@ void MainWindow::open(QString name)
 	}
 	
 	path = name;
-	pathLabel->setText(QFileInfo(name).baseName());
+	pathLabel->setText(QFileInfo(name).fileName());
 }
 
 QString MainWindow::getFormula(const QString& filename)
@@ -123,7 +124,7 @@ void MainWindow::view()
 	form->show();
 }
 
-FileEditor::FileEditor(const QString& _path): path(_path)
+FileEditor::FileEditor(const QString& _path): path(_path), modified(false)
 {
 	QGridLayout *layout = new QGridLayout;
 
@@ -135,6 +136,7 @@ FileEditor::FileEditor(const QString& _path): path(_path)
 	QFile f(path);
 	f.open(QIODevice::ReadOnly | QIODevice::Text);
 	edit->setPlainText(QString::fromUtf8(f.readAll()));
+	connect(edit, &QTextEdit::textChanged, [this]() { this->modified = true; });
 	layout->addWidget(edit, 1, 0);
 
 	setLayout(layout);
@@ -149,8 +151,23 @@ void FileEditor::save()
 		return;
 	}
 	f.write(edit->toPlainText().toUtf8());
+	modified = false;
 }
 
 void FileEditor::closeEvent(QCloseEvent* event)
 {
+	if (modified)
+	{
+		QMessageBox::StandardButton ans = QMessageBox::question(this,
+			tr("Save"), tr("Do you want to save file?"),
+			QMessageBox::Save | QMessageBox::Cancel | QMessageBox::Discard);
+		if (ans == QMessageBox::Save)
+		{
+			save();
+		}
+		else if (ans == QMessageBox::Cancel)
+		{
+			event->ignore();
+		}
+	}
 }
