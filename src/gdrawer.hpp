@@ -13,6 +13,16 @@ typedef double real_t;
 
 #define EPS (1e-5)
 
+class Exception
+{
+	public:
+		Exception(const QString& _what): m_what(_what) {}
+		QString what() const { return m_what; }
+		void append(const QString& _what) { m_what.append(_what); }
+	private:
+		QString m_what;
+};
+
 struct RangeReal
 {
 	real_t min, max;
@@ -39,6 +49,10 @@ struct RangeReal
 	}
 	RangeReal operator/(const RangeReal& other) const
 	{
+		if (other.isZero())
+		{
+			throw Exception("Division by zero");
+		}
 		real_t a = min / other.min, b = min / other.max,
 			   c = max / other.min, d = max / other.max;
 		return RangeReal(std::min({a, b, c, d}), std::max({a, b, c, d}));
@@ -58,7 +72,7 @@ struct RangeReal
 			int o = other.max;
 			if (std::fabs(other.max - o) > EPS)
 			{
-				throw std::runtime_error("a^b, a < 0 and b is not integer");
+				throw Exception("Attempted to calculate a^b, a<0 and b is not integer.");
 			}
 			if (o % 2 == 0)
 			{

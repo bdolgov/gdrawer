@@ -113,7 +113,14 @@ void MainWindow::draw()
 		QPointF(x1->text().toDouble(), y1->text().toDouble()),
 		QPointF(x2->text().toDouble(), y2->text().toDouble()));
 
-	picture->setPixmap(QPixmap::fromImage(drawFormula(getFormula(path), rect, picture->size())));
+	try
+	{
+		picture->setPixmap(QPixmap::fromImage(drawFormula(getFormula(path), rect, picture->size())));
+	}
+	catch (Exception e)
+	{
+		QMessageBox::critical(this, tr("Error"), e.what());
+	}
 }
 
 void MainWindow::view()

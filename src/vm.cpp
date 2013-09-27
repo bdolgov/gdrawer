@@ -166,7 +166,7 @@ Real Instrs::execute(Ctx* ctx)
 				ctx->swap();
 				break;
 			default:
-				throw std::runtime_error("Unknown instruction");
+				throw Exception(QString("Unknown instruction: %1").arg(i.type));
 		}
 	}
 	return ctx->pop();

@@ -3,9 +3,11 @@
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix_core.hpp>
 #include <boost/spirit/include/phoenix_operator.hpp>
+#include <boost/spirit/include/phoenix_object.hpp>
 #include <boost/spirit/include/phoenix_fusion.hpp>
 #include <boost/spirit/home/phoenix/object/new.hpp>
 #include <stdexcept>
+#include <QDebug>
 
 using namespace boost;
 using namespace spirit;
@@ -40,6 +42,19 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
 		expr
 			= term[_val = _1] >> *(char_("+-") >> term)[_val = new_<binop_t>(_1, _val, _2)]
 			| ('-' >> term)[_val = new_<unop_t>('-', _1)];
+
+		qi::on_error<qi::fail>
+		(
+			expr,
+			std::cout
+                << val("Error! Expecting ")
+                << _4                               // what failed?
+                << val(" here: \"")
+                << construct<std::string>(_3, _2)   // iterators to error-pos, end
+                << val("\"")
+                << std::endl
+		);
+		qi::debug(expr); qi::debug(term); qi::debug(factor); qi::debug(primitive);
 	}
 	
 	qi::rule<Iterator, expr_t*(), ascii::space_type> primitive, factor, term, expr;
@@ -55,8 +70,9 @@ Instrs Instrs::get(const QString& expr)
 	bool r = phrase_parse(begin, end, g, space, tree);
 	if (!r || begin != end || !tree)
 	{
+//		qDebug() << "end - begin = " << int(end - begin) << " tree " << (long long)tree << std::endl; 
 		if (tree) delete tree;
-		throw std::invalid_argument("Syntax error");
+		throw Exception("Syntax error");
 	}
 
 	Instrs ret;

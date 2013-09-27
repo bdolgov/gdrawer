@@ -12,8 +12,9 @@ namespace
 			QRectF rect;
 			QRect viewport;
 			Instrs *vm;
+			QAtomicPointer<Exception>* e;
 		public:
-			Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs *_vm);
+			Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs *_vm, QAtomicPointer<Exception>* _e);
 			void run();
 	};
 }
@@ -36,19 +37,26 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	rect1.setHeight(rect1.height() / threads);
 	QRect viewport1(QPoint(0, 0), viewport);
 	viewport1.setHeight(viewport1.height() / threads);
+	QAtomicPointer<Exception> e;
 	for (int i = 0; i < threads; ++i)
 	{
-		pool.start(new Task(&ret, rect1, viewport1, &vm));
+		pool.start(new Task(&ret, rect1, viewport1, &vm, &e));
 		qDebug() << "Started pool" << rect1 << viewport1;
 		rect1.moveTop(rect1.top() + rect1.height());
 		viewport1.moveTop(viewport1.top() + viewport1.height());
 	}
 	pool.waitForDone();
+	if (Exception *e0 = e.load())
+	{
+		Exception e1(*e0);
+		delete e0;
+		throw e1;
+	}
 	return ret;
 }
 
-Task::Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs* _vm):
-	img(_img), rect(_rect), viewport(_viewport), vm(_vm)
+Task::Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs* _vm, QAtomicPointer<Exception>* _e):
+	img(_img), rect(_rect), viewport(_viewport), vm(_vm), e(_e)
 {
 }
 
@@ -70,8 +78,17 @@ void Task::run()
 		{
 			ctx.vars['x' - 'a'] = Real(x, x + dx);
 			ctx.reset();
-			Real res = vm->execute(&ctx);
-			line[px] = res.isZero();
+			try
+			{
+				Real res = vm->execute(&ctx);
+				line[px] = res.isZero();
+			}
+			catch (Exception e0)
+			{
+				e0.append(QString("Point: (%1, %2)").arg(x).arg(y));
+				delete e->fetchAndStoreOrdered(new Exception(e0));
+				return;
+			}
 		}
 	}
 }
