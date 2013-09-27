@@ -80,7 +80,8 @@ QString MainWindow::getFormula(const QString& filename)
 		if (line.startsWith("#!"))
 		{
 			line.remove(0, 2);
-			QStringList parts = line.split(QRegExp("\\s+"));
+			QStringList parts = line.split(QRegExp("\\s+"), QString::SkipEmptyParts);
+			qDebug() << parts;
 			if (parts.size() != 4) continue;
 			QLineEdit *order[] = { x1, y1, x2, y2 };
 			for (int i = 0; i < 4; ++i)
@@ -91,10 +92,11 @@ QString MainWindow::getFormula(const QString& filename)
 				{
 					QMessageBox::warning(this, tr("GDrawer"), tr("Rect sizes are invalid"));
 					resetRect();
-					continue;
+					break;
 				}
 				order[i]->setText(parts[i]);
 			}
+			continue;
 		}
 		if (line.startsWith('#'))
 		{
@@ -109,13 +111,15 @@ QString MainWindow::getFormula(const QString& filename)
 
 void MainWindow::draw()
 {
-	QRectF rect(
-		QPointF(x1->text().toDouble(), y1->text().toDouble()),
-		QPointF(x2->text().toDouble(), y2->text().toDouble()));
-
 	try
 	{
-		picture->setPixmap(QPixmap::fromImage(drawFormula(getFormula(path), rect, picture->size())));
+		QString f = getFormula(path); /* to set x1, x2, y1, y2 */
+
+		QRectF rect(
+			QPointF(x1->text().toDouble(), y1->text().toDouble()),
+			QPointF(x2->text().toDouble(), y2->text().toDouble()));
+
+		picture->setPixmap(QPixmap::fromImage(drawFormula(f, rect, picture->size())));
 	}
 	catch (Exception e)
 	{
