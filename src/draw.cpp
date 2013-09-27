@@ -35,6 +35,7 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	pool.setMaxThreadCount(threads);
 	QRectF rect1(rect);
 	rect1.setHeight(rect1.height() / threads);
+	rect1.moveTop(rect1.top() + rect1.height() * (threads - 1));
 	QRect viewport1(QPoint(0, 0), viewport);
 	viewport1.setHeight(viewport1.height() / threads);
 	QAtomicPointer<Exception> e;
@@ -42,7 +43,7 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	{
 		pool.start(new Task(&ret, rect1, viewport1, &vm, &e));
 		qDebug() << "Started pool" << rect1 << viewport1;
-		rect1.moveTop(rect1.top() + rect1.height());
+		rect1.moveTop(rect1.top() - rect1.height());
 		viewport1.moveTop(viewport1.top() + viewport1.height());
 	}
 	pool.waitForDone();
@@ -64,12 +65,12 @@ void Task::run()
 {
 	float_t dx = static_cast<float_t>(rect.width()) / viewport.width(),
 	        dy = static_cast<float_t>(rect.height()) / viewport.height(),
-			y = rect.top(),
+			y = rect.bottom(),
 			x = 0;
 	int pxEnd = viewport.right() + 1, pyEnd = viewport.bottom() + 1;
 	Ctx ctx(vm->requiredStackSize);
 	qDebug() << viewport.top() << pyEnd;
-	for (int py = viewport.top(); py != pyEnd; ++py, y += dy)
+	for (int py = viewport.top(); py != pyEnd; ++py, y -= dy)
 	{
 		x = rect.left();
 		uchar *line = img->scanLine(py);
