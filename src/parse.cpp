@@ -54,7 +54,7 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
                 << val("\"")
                 << std::endl
 		);
-		qi::debug(expr); qi::debug(term); qi::debug(factor); qi::debug(primitive);
+		/* qi::debug(expr); qi::debug(term); qi::debug(factor); qi::debug(primitive); */
 	}
 	
 	qi::rule<Iterator, expr_t*(), ascii::space_type> primitive, factor, term, expr;
