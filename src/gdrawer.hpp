@@ -11,7 +11,7 @@
 
 typedef double real_t;
 
-#define EPS (1e-5)
+#define EPS (1e-9)
 
 class Exception
 {
