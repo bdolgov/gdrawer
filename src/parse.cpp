@@ -29,10 +29,14 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
 			| ('|' >> expr >> '|')[_val = new_<unop_t>('|', _1)]
 			| (char_('a', 'z') | char_('A', 'Z'))[_val = new_<var_t>(_1)]
 			| real[_val = new_<const_t>(_1)];
+		
+		primitive2
+			= primitive[_val = _1]
+			| ('-' >> primitive)[_val = new_<unop_t>('-', _1)];
 
 		factor
-			= (primitive >> '^' >> factor)[_val = new_<binop_t>('^', _1, _2)]
-			| primitive[_val = _1];
+			= (primitive2 >> '^' >> factor)[_val = new_<binop_t>('^', _1, _2)]
+			| primitive2[_val = _1];
 		
 		term
 			= factor[_val = _1] >> 
@@ -40,8 +44,7 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
 				| !char_("-+") >> factor[_val = new_<binop_t>('*', _val, _1)] );
 		
 		expr
-			= term[_val = _1] >> *(char_("+-") >> term)[_val = new_<binop_t>(_1, _val, _2)]
-			| ('-' >> term)[_val = new_<unop_t>('-', _1)];
+			= term[_val = _1] >> *(char_("+-") >> term)[_val = new_<binop_t>(_1, _val, _2)];
 
 		qi::on_error<qi::fail>
 		(
@@ -54,10 +57,10 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
                 << val("\"")
                 << std::endl
 		);
-		/* qi::debug(expr); qi::debug(term); qi::debug(factor); qi::debug(primitive); */
+		/* qi::debug(expr); qi::debug(term); qi::debug(factor); qi::debug(primitive); qi::debug(primitive2); */
 	}
 	
-	qi::rule<Iterator, expr_t*(), ascii::space_type> primitive, factor, term, expr;
+	qi::rule<Iterator, expr_t*(), ascii::space_type> primitive, primitive2, factor, term, expr;
 	qi::real_parser<real_t> real;
 };
 
