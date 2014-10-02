@@ -49,10 +49,10 @@ MainWindow::MainWindow()
 
 void MainWindow::resetRect()
 {
-	x1->setText("-100");
-	y1->setText("-100");
-	x2->setText("100");
-	y2->setText("100");
+	x1->setText("-10");
+	y1->setText("-10");
+	x2->setText("10");
+	y2->setText("10");
 }
 
 void MainWindow::open()
