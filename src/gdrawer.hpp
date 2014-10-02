@@ -9,6 +9,7 @@
 #include <QWidget>
 #include <QImage>
 #include <cmath>
+#include <QComboBox>
 
 typedef double real_t;
 
@@ -167,7 +168,7 @@ struct MathVm : Vm, std::vector<Instr>
 	int requiredStackSize;
 	Ctx* createCtx() const { return new MathCtx(requiredStackSize); }
 	Real execute(Ctx* ctx) const;
-	static MathVm get(const QString& expr);
+	static Vm *get(const QString& expr);
 	void dump();
 };
 
@@ -237,6 +238,7 @@ class MainWindow : public QWidget
 		QString path;
 		void resetRect();
 		QString getFormula(const QString& filename);
+		QComboBox *type;
 
 	public slots:
 		void open();
@@ -270,5 +272,23 @@ class FileEditor : public QWidget
 };
 
 QImage drawFormula(Vm* vm, const QRectF& rect, const QSize& viewport);
+
+struct PascalCtx : Ctx
+{
+	double x, y;
+	void reset() {} 
+	void setVar(char name, Real value) { (name == 'x' ? x : y) = value.min; }
+};
+
+struct PascalVm : Vm
+{
+	void *lib;
+	char (*fn)(double, double);
+	Ctx *createCtx() const { return new PascalCtx; }
+	Real execute(Ctx*) const;
+	~PascalVm();
+};
+
+Vm* getPascalVm(const QString& program);
 
 #endif

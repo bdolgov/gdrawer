@@ -18,5 +18,5 @@ CONFIG += debug
 QT += widgets
 # Input
 HEADERS += src/gdrawer.hpp
-SOURCES += src/parse.cpp src/vm.cpp src/main.cpp src/ui.cpp src/draw.cpp
+SOURCES += src/parse.cpp src/vm.cpp src/main.cpp src/ui.cpp src/draw.cpp src/pascal.cpp
 RESOURCES += gdrawer.qrc

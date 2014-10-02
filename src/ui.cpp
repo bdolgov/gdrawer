@@ -34,6 +34,11 @@ MainWindow::MainWindow()
 	connect(viewButton, SIGNAL(clicked()), this, SLOT(view()));
 	form->addRow(viewButton);
 
+	type = new QComboBox;
+	type->addItem("Math");
+	type->addItem("Pascal");
+	form->addRow(type);
+
 	layout->addLayout(form);
 	setLayout(layout);
 
@@ -52,7 +57,8 @@ void MainWindow::resetRect()
 
 void MainWindow::open()
 {
-	open(QFileDialog::getOpenFileName(this, tr("Open file"), "", "Text file (*.txt)"));
+	open(QFileDialog::getOpenFileName(this, tr("Open file"), "", 
+		type->currentIndex() == 0 ? "Text file (*.txt)" : "Pascal file (*.pas)"));
 }
 
 void MainWindow::open(QString name)
@@ -66,6 +72,13 @@ void MainWindow::open(QString name)
 	
 	path = name;
 	pathLabel->setText(QFileInfo(name).fileName());
+}
+
+static QString readFile(const QString& filename)
+{
+	QFile f(filename);
+	f.open(QIODevice::ReadOnly | QIODevice::Text);
+	return QString::fromUtf8(f.readAll());
 }
 
 QString MainWindow::getFormula(const QString& filename)
@@ -113,13 +126,17 @@ void MainWindow::draw()
 {
 	try
 	{
-		MathVm f = MathVm::get(getFormula(path)); /* to set x1, x2, y1, y2 */
+		std::unique_ptr<Vm> f;
+		if (type->currentIndex() == 0)
+			f.reset(MathVm::get(getFormula(path))); // GetFormula sets x, y
+		else if (type->currentIndex() == 1)
+			f.reset(getPascalVm(readFile(path)));
 
 		QRectF rect(
 			QPointF(x1->text().toDouble(), y1->text().toDouble()),
 			QPointF(x2->text().toDouble(), y2->text().toDouble()));
 
-		picture->setPixmap(QPixmap::fromImage(drawFormula(&f, rect, picture->size())));
+		picture->setPixmap(QPixmap::fromImage(drawFormula(&*f, rect, picture->size())));
 	}
 	catch (Exception e)
 	{
