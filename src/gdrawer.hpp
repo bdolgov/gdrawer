@@ -8,6 +8,7 @@
 #include <QString>
 #include <QWidget>
 #include <QImage>
+#include <cmath>
 
 typedef double real_t;
 
