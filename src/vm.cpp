@@ -1,17 +1,17 @@
 #include "gdrawer.hpp"
 #include <QDebug>
 
-void const_t::addInstr(Instrs* instrs) const
+void const_t::addInstr(MathVm* instrs) const
 {
 	instrs->emplace_back('C', 0, val);
 }
 
-void var_t::addInstr(Instrs* instrs) const
+void var_t::addInstr(MathVm* instrs) const
 {
 	instrs->emplace_back('V', name - 'a');
 }
 
-void binop_t::addInstr(Instrs* instrs) const
+void binop_t::addInstr(MathVm* instrs) const
 {
 	if (op == '^')
 	{
@@ -69,7 +69,7 @@ void binop_t::addInstr(Instrs* instrs) const
 	instrs->emplace_back(opcode());
 }
 
-void unop_t::addInstr(Instrs* instrs) const
+void unop_t::addInstr(MathVm* instrs) const
 {
 	l->addInstr(instrs);
 	instrs->emplace_back(opcode());
@@ -111,7 +111,7 @@ bool unop_t::equalsTo(const expr_t* other) const
 	return false;
 }
 
-void Instrs::dump()
+void MathVm::dump()
 {
 	for (auto& i : *this)
 	{
@@ -119,8 +119,9 @@ void Instrs::dump()
 	}
 }
 
-Real Instrs::execute(Ctx* ctx)
+Real MathVm::execute(Ctx* _ctx) const
 {
+	MathCtx *ctx = static_cast<MathCtx*>(_ctx);
 	ctx->reset();
 	Real a = 0, b = 0;
 	for (auto& i : *this)

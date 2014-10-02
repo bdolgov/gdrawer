@@ -113,13 +113,13 @@ void MainWindow::draw()
 {
 	try
 	{
-		QString f = getFormula(path); /* to set x1, x2, y1, y2 */
+		MathVm f = MathVm::get(getFormula(path)); /* to set x1, x2, y1, y2 */
 
 		QRectF rect(
 			QPointF(x1->text().toDouble(), y1->text().toDouble()),
 			QPointF(x2->text().toDouble(), y2->text().toDouble()));
 
-		picture->setPixmap(QPixmap::fromImage(drawFormula(f, rect, picture->size())));
+		picture->setPixmap(QPixmap::fromImage(drawFormula(&f, rect, picture->size())));
 	}
 	catch (Exception e)
 	{

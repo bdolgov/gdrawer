@@ -11,18 +11,16 @@ namespace
 			QImage *img;
 			QRectF rect;
 			QRect viewport;
-			Instrs *vm;
+			Vm *vm;
 			QAtomicPointer<Exception>* e;
 		public:
-			Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs *_vm, QAtomicPointer<Exception>* _e);
+			Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Vm *_vm, QAtomicPointer<Exception>* _e);
 			void run();
 	};
 }
 
-QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& viewport)
+QImage drawFormula(Vm* vm, const QRectF& rect, const QSize& viewport)
 {
-	Instrs vm = Instrs::get(formula);
-	vm.dump();
 	int threads = QThread::idealThreadCount();
 	if (threads == -1) threads = 2;
 	QImage ret(viewport, QImage::Format_Indexed8);
@@ -41,7 +39,7 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	QAtomicPointer<Exception> e;
 	for (int i = 0; i < threads; ++i)
 	{
-		pool.start(new Task(&ret, rect1, viewport1, &vm, &e));
+		pool.start(new Task(&ret, rect1, viewport1, vm, &e));
 		qDebug() << "Started pool" << rect1 << viewport1;
 		rect1.moveTop(rect1.top() - rect1.height());
 		viewport1.moveTop(viewport1.top() + viewport1.height());
@@ -56,7 +54,7 @@ QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& view
 	return ret;
 }
 
-Task::Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Instrs* _vm, QAtomicPointer<Exception>* _e):
+Task::Task(QImage* _img, const QRectF& _rect, const QRect& _viewport, Vm *_vm, QAtomicPointer<Exception>* _e):
 	img(_img), rect(_rect), viewport(_viewport), vm(_vm), e(_e)
 {
 }
@@ -68,20 +66,20 @@ void Task::run()
 			y = rect.bottom(),
 			x = 0;
 	int pxEnd = viewport.right() + 1, pyEnd = viewport.bottom() + 1;
-	Ctx ctx(vm->requiredStackSize);
+	std::unique_ptr<Ctx> ctx(vm->createCtx());
 	qDebug() << viewport.top() << pyEnd;
 	for (int py = viewport.top(); py != pyEnd; ++py, y -= dy)
 	{
 		x = rect.left();
 		uchar *line = img->scanLine(py);
-		ctx.vars['y' - 'a'] = Real(y, y + dy);
+		ctx->setVar('y', Real(y, y + dy));
 		for (int px = 0; px != pxEnd; ++px, x += dx)
 		{
-			ctx.vars['x' - 'a'] = Real(x, x + dx);
-			ctx.reset();
+			ctx->setVar('x', Real(x, x + dx));
+			ctx->reset();
 			try
 			{
-				Real res = vm->execute(&ctx);
+				Real res = vm->execute(&*ctx);
 				line[px] = res.isZero();
 			}
 			catch (Exception e0)
@@ -93,5 +91,3 @@ void Task::run()
 		}
 	}
 }
-
-

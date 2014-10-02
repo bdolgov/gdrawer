@@ -110,11 +110,26 @@ typedef RangeReal Real;
 
 struct Ctx
 {
+	virtual void reset() = 0;
+	virtual void setVar(char name, Real value) = 0;
+	virtual ~Ctx() {}
+};
+
+struct Vm
+{
+	virtual Ctx *createCtx() const = 0;
+
+	virtual Real execute(Ctx* ctx) const = 0;
+	virtual ~Vm() {}
+};
+
+struct MathCtx : Ctx
+{
 	std::unique_ptr<Real[]> origStack;
 	std::array<Real, 26> vars;
 	Real *stack;
 
-	Ctx(int stackSize): origStack(new Real[stackSize]), stack(origStack.get()) {}
+	MathCtx(int stackSize): origStack(new Real[stackSize]), stack(origStack.get()) {}
 	void reset() { stack = origStack.get(); }
 	inline void push(const Real& val)
 	{
@@ -132,6 +147,10 @@ struct Ctx
 	{
 		std::swap(*(stack - 1), *(stack - 2));
 	}
+	void setVar(char name, Real value)
+	{
+		vars[name - 'a'] = value;
+	}
 };
 
 struct Instr
@@ -143,18 +162,19 @@ struct Instr
 	Instr(char _type, char _arg = 0, real_t _val = 0): type(_type), arg(_arg), val(_val) {}
 };
 
-struct Instrs : public std::vector<Instr>
+struct MathVm : Vm, std::vector<Instr>
 {
 	int requiredStackSize;
-	Real execute(Ctx* ctx);
-	static Instrs get(const QString& expr);
+	Ctx* createCtx() const { return new MathCtx(requiredStackSize); }
+	Real execute(Ctx* ctx) const;
+	static MathVm get(const QString& expr);
 	void dump();
 };
 
 struct expr_t
 {
 	virtual int getDepth() const = 0;
-	virtual void addInstr(Instrs* instrs) const = 0;
+	virtual void addInstr(MathVm* instrs) const = 0;
 	virtual ~expr_t() {}
 	virtual bool equalsTo(const expr_t* other) const = 0;
 	virtual char opcode() const = 0;
@@ -165,7 +185,7 @@ struct const_t : expr_t
 	real_t val;
 	const_t(float_t _val): val(_val) {}
 	int getDepth() const { return 1; }
-	void addInstr(Instrs* instrs) const;
+	void addInstr(MathVm* instrs) const;
 	bool equalsTo(const expr_t* other) const;
 	char opcode() const { return 'C'; }
 };
@@ -175,7 +195,7 @@ struct var_t : expr_t
 	char name;
 	var_t(char _name): name(tolower(_name)) {}
 	int getDepth() const { return 1; }
-	void addInstr(Instrs* instrs) const;
+	void addInstr(MathVm* instrs) const;
 	bool equalsTo(const expr_t* other) const;
 	char opcode() const { return 'V'; }
 };
@@ -186,7 +206,7 @@ struct binop_t : expr_t
 	std::unique_ptr<expr_t> l, r;
 	binop_t(char _op, expr_t* _l, expr_t* _r = NULL): op(_op), l(_l), r(_r) {}
 	int getDepth() const { return 1 + std::max(l->getDepth(), r->getDepth()); }
-	void addInstr(Instrs* instrs) const;
+	void addInstr(MathVm* instrs) const;
 	bool equalsTo(const expr_t* other) const;
 	char opcode() const { return op; }
 };
@@ -197,7 +217,7 @@ struct unop_t : expr_t
 	std::unique_ptr<expr_t> l;
 	unop_t(char _op, expr_t* _l): op(_op), l(_l) {}
 	int getDepth() const { return l->getDepth(); }
-	void addInstr(Instrs* instrs) const;
+	void addInstr(MathVm* instrs) const;
 	bool equalsTo(const expr_t* other) const;
 	char opcode() const { return op == '-' ? 'm' : op; }
 };
@@ -249,6 +269,6 @@ class FileEditor : public QWidget
 		FileEditor(const QString& _path);
 };
 
-QImage drawFormula(const QString& formula, const QRectF& rect, const QSize& viewport);
+QImage drawFormula(Vm* vm, const QRectF& rect, const QSize& viewport);
 
 #endif

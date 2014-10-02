@@ -64,7 +64,7 @@ struct ExprGrammar : qi::grammar<Iterator, expr_t*(), ascii::space_type>
 	qi::real_parser<real_t> real;
 };
 
-Instrs Instrs::get(const QString& expr)
+MathVm MathVm::get(const QString& expr)
 {
 	expr_t* tree = NULL;
 	std::string s = expr.toStdString();
@@ -78,7 +78,7 @@ Instrs Instrs::get(const QString& expr)
 		throw Exception("Syntax error");
 	}
 
-	Instrs ret;
+	MathVm ret;
 	tree->addInstr(&ret);
 	ret.requiredStackSize = tree->getDepth();
 	delete tree;
