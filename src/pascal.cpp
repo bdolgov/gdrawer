@@ -49,7 +49,7 @@ Vm* getPascalVm(const QString& prog)
 	  << "var " << vars << "\n"
 	  << "begin\n"
 	  << "x := __x; y := __y;\n"
-	  << body << "\n"
+	  << body << ";\n"
 	  << "__r := r;\n"
 	  << "end;\n"
 	  << "exports\n"
