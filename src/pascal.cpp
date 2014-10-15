@@ -39,7 +39,7 @@ Vm* getPascalVm(const QString& prog)
 	QString vars, body;
 	{
 		int var = prog.indexOf(QRegularExpression("(\\s|^)var(\\s|$)", QRegularExpression::CaseInsensitiveOption), 0);
-		int begin = prog.indexOf(QRegularExpression("(\\s|^)begin(\\s|$)", QRegularExpression::CaseInsensitiveOption), var);
+		int begin = prog.indexOf(QRegularExpression("(\\s|^)begin(\\s|$|;)", QRegularExpression::CaseInsensitiveOption), var);
 		int end = prog.indexOf(QRegularExpression("(\\s|^)end.(\\s|$)", QRegularExpression::CaseInsensitiveOption), begin);
 		if (var == -1 || begin == -1 || end == -1)
 		{
