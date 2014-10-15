@@ -11,6 +11,8 @@ macx {
 }
 win32 {
 	INCLUDEPATH += x:/boost
+	INCLUDEPATH += x:/devel/dlfcn-win32
+	LIBS += x:/devel/dlfcn-win32/libdl.a
 }
 QMAKE_CXXFLAGS += -std=c++11 -Wall -Wextra
 QMAKE_CXXFLAGS_RELEASE += -std=c++11 -Wall -Wextra

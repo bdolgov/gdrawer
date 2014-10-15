@@ -84,7 +84,7 @@ void Task::run()
 			}
 			catch (Exception e0)
 			{
-				e0.append(QString("Point: (%1, %2)").arg(x).arg(y));
+				e0.append(QString("Point: (%1, %2)").arg(double(x)).arg(double(y)));
 				delete e->fetchAndStoreOrdered(new Exception(e0));
 				return;
 			}

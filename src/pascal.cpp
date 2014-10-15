@@ -4,21 +4,28 @@
 #include <QString>
 #include <QRegularExpression>
 #include <QProcess>
-#include <dlfcn.h>
 #include <QDir>
+#include <QDebug>
+#include <QThread>
 
 #if defined(Q_OS_OSX)
 #define PREFIX "_"
 #define FPC "./fpc.sh"
 #define SO ".dylib"
+#define CONVERTOR fromUtf8
+#include <dlfcn.h>
 #elif defined(Q_OS_LINUX)
 #define PREFIX ""
 #define FPC "./fpc.sh"
 #define SO ".so"
+#define CONVERTOR fromUtf8
+#include <dlfcn.h>
 #elif defined(Q_OS_WIN)
-#define PREFIX "_"
+#define PREFIX ""
 #define FPC "fpc.bat"
 #define SO ".dll"
+#define CONVERTOR fromLocal8Bit
+#include "dlfcn.h"
 #else
 #error "This OS is not yet supported"
 #endif
@@ -58,28 +65,32 @@ Vm* getPascalVm(const QString& prog)
 	tmp.close();
 	
 	QProcess fpc;
-	QTemporaryFile tmp1(QDir::tempPath() + "/solution.XXXXXX" SO);
-	tmp1.open(); tmp1.close();
+	QString tmp1Name;
+	{
+		QTemporaryFile tmp1(QDir::tempPath() + "/solution.XXXXXX" SO);
+		tmp1.open(); tmp1.close();
+		tmp1Name = tmp1.fileName();
+	}
 
-	fpc.start(FPC, QStringList() << tmp.fileName() << tmp1.fileName());
+	fpc.start(FPC, QStringList() << tmp.fileName() << tmp1Name);
 	fpc.waitForFinished();
 	if (fpc.exitCode())
 	{
-		throw Exception(QString("fpc: %1").arg(QString::fromUtf8(fpc.readAllStandardError())));
+		throw Exception(QString("fpc: %1").arg(QString::CONVERTOR(fpc.readAllStandardError())));
 	}
 
 	PascalVm *ret = new PascalVm;
-	ret->lib = dlopen(tmp1.fileName().toUtf8().data(), RTLD_LAZY | RTLD_LOCAL);
+	ret->lib = dlopen(tmp1Name.toUtf8().data(), RTLD_LAZY | RTLD_LOCAL);
 	if (!ret->lib)
 	{
 		delete ret;
-		throw Exception(QString("dlopen(): %1").arg(dlerror()));
+		throw Exception(QString("dlopen(): %1").arg(QString::CONVERTOR(dlerror())));
 	}
 	ret->fn = reinterpret_cast<char (*)(double, double)>(dlsym(ret->lib, "pascal_run"));
 	if (!ret->fn)
 	{
 		delete ret;
-		throw Exception(QString("dlsym(): %1").arg(dlerror()));
+		throw Exception(QString("dlsym(): %1").arg(QString::CONVERTOR(dlerror())));
 	}
 	return ret;
 }

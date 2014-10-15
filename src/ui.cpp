@@ -77,7 +77,8 @@ void MainWindow::open(QString name)
 static QString readFile(const QString& filename)
 {
 	QFile f(filename);
-	f.open(QIODevice::ReadOnly | QIODevice::Text);
+	if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+		throw Exception("Cannot open file!");
 	return QString::fromUtf8(f.readAll());
 }
 
