@@ -37,6 +37,7 @@ MainWindow::MainWindow()
 	type = new QComboBox;
 	type->addItem("Math");
 	type->addItem("Pascal");
+	type->addItem("C++");
 	form->addRow(type);
 
 	layout->addLayout(form);
@@ -57,8 +58,15 @@ void MainWindow::resetRect()
 
 void MainWindow::open()
 {
-	open(QFileDialog::getOpenFileName(this, tr("Open file"), "", 
-		type->currentIndex() == 0 ? "Text file (*.txt)" : "Pascal file (*.pas)"));
+	QString ext;
+	if (type->currentIndex() == 0)
+		ext = "Text file (*.txt)";
+	else if (type->currentIndex() == 1) 
+		ext = "Pascal file (*.pas)";
+	else if (type->currentIndex() == 2)
+		ext = "C++ file (*.cpp)";
+
+	open(QFileDialog::getOpenFileName(this, tr("Open file"), "", ext));
 }
 
 void MainWindow::open(QString name)
@@ -132,6 +140,8 @@ void MainWindow::draw()
 			f.reset(MathVm::get(getFormula(path))); // GetFormula sets x, y
 		else if (type->currentIndex() == 1)
 			f.reset(getPascalVm(readFile(path)));
+		else if (type->currentIndex() == 2)
+			f.reset(getCppVm(readFile(path)));
 
 		QRectF rect(
 			QPointF(x1->text().toDouble(), y1->text().toDouble()),

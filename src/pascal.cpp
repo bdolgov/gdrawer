@@ -11,12 +11,14 @@
 #if defined(Q_OS_OSX)
 #define PREFIX "_"
 #define FPC "./fpc.sh"
+#define GCC "./gcc.sh"
 #define SO ".dylib"
 #define CONVERTOR fromUtf8
 #include <dlfcn.h>
 #elif defined(Q_OS_LINUX)
 #define PREFIX ""
 #define FPC "./fpc.sh"
+#define GCC "./gcc.sh"
 #define SO ".so"
 #define CONVERTOR fromUtf8
 #include <dlfcn.h>
@@ -29,6 +31,23 @@
 #else
 #error "This OS is not yet supported"
 #endif
+
+Vm *createVm(const QString tmp1Name, const char *fn) {
+	PascalVm *ret = new PascalVm;
+	ret->lib = dlopen(tmp1Name.toUtf8().data(), RTLD_LAZY | RTLD_LOCAL);
+	if (!ret->lib)
+	{
+		delete ret;
+		throw Exception(QString("dlopen(): %1").arg(QString::CONVERTOR(dlerror())));
+	}
+	ret->fn = reinterpret_cast<char (*)(double, double)>(dlsym(ret->lib, fn));
+	if (!ret->fn)
+	{
+		delete ret;
+		throw Exception(QString("dlsym(): %1").arg(QString::CONVERTOR(dlerror())));
+	}
+	return ret;
+}
 
 Vm* getPascalVm(const QString& prog)
 {
@@ -79,20 +98,7 @@ Vm* getPascalVm(const QString& prog)
 		throw Exception(QString("fpc: %1").arg(QString::CONVERTOR(fpc.readAllStandardError())));
 	}
 
-	PascalVm *ret = new PascalVm;
-	ret->lib = dlopen(tmp1Name.toUtf8().data(), RTLD_LAZY | RTLD_LOCAL);
-	if (!ret->lib)
-	{
-		delete ret;
-		throw Exception(QString("dlopen(): %1").arg(QString::CONVERTOR(dlerror())));
-	}
-	ret->fn = reinterpret_cast<char (*)(double, double)>(dlsym(ret->lib, "pascal_run"));
-	if (!ret->fn)
-	{
-		delete ret;
-		throw Exception(QString("dlsym(): %1").arg(QString::CONVERTOR(dlerror())));
-	}
-	return ret;
+	return createVm(tmp1Name, "pascal_run");
 }
 
 Real PascalVm::execute(Ctx* _ctx) const
@@ -107,4 +113,37 @@ PascalVm::~PascalVm()
 	{
 		dlclose(lib);
 	}
+}
+
+Vm* getCppVm(const QString& prog) {
+	QTemporaryFile tmp(QDir::tempPath() + "/solution.XXXXXX.cpp");
+	if (!tmp.open())
+		throw Exception("Cannot create temp file");
+	QTextStream s(&tmp);
+	s << "#include <cmath>\n#include <cstdlib>\n"
+	     "extern \"C\" { \n"
+	     "  bool f(double, double);\n"
+	     "  bool " PREFIX "cpp_run(double x, double y) {\n"
+	     "    return f(x, y);\n"
+	     "  }\n"
+	     "#line 1\n"
+      << prog
+      << "\n#line 100000\n"
+         "}\n";
+    tmp.close();
+    QProcess gcc;
+    QString tmp1Name;
+	{
+		QTemporaryFile tmp1(QDir::tempPath() + "/solution.XXXXXX" SO);
+		tmp1.open(); tmp1.close();
+		tmp1Name = tmp1.fileName();
+	}
+	gcc.start(GCC, QStringList() << tmp.fileName() << tmp1Name);
+    gcc.waitForFinished();
+	if (gcc.exitCode())
+	{
+		throw Exception(QString("gcc: %1").arg(QString::CONVERTOR(gcc.readAllStandardError())));
+	}
+
+	return createVm(tmp1Name, "cpp_run");
 }

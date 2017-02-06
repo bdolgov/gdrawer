@@ -290,5 +290,6 @@ struct PascalVm : Vm
 };
 
 Vm* getPascalVm(const QString& program);
+Vm* getCppVm(const QString& program);
 
 #endif

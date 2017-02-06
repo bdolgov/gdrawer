@@ -5,7 +5,11 @@
 #include <boost/spirit/include/phoenix_operator.hpp>
 #include <boost/spirit/include/phoenix_object.hpp>
 #include <boost/spirit/include/phoenix_fusion.hpp>
+#if BOOST_VERSION >= 106000
+#include <boost/phoenix/object/new.hpp>
+#else
 #include <boost/spirit/home/phoenix/object/new.hpp>
+#endif
 #include <stdexcept>
 #include <QDebug>
 
