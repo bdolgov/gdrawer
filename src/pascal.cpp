@@ -123,14 +123,13 @@ Vm* getCppVm(const QString& prog) {
 		throw Exception("Cannot create temp file");
 	QTextStream s(&tmp);
 	s << "#include <cmath>\n#include <cstdlib>\n"
+	  << "#line 1\n"
+	  << prog
+	  << "\n#line 10000\n"
 	     "extern \"C\" { \n"
-	     "  bool f(double, double);\n"
 	     "  bool " GCC_PREFIX "cpp_run(double x, double y) {\n"
 	     "    return f(x, y);\n"
 	     "  }\n"
-	     "#line 1\n"
-      << prog
-      << "\n#line 100000\n"
          "}\n";
     tmp.close();
     QProcess gcc;
