@@ -7,7 +7,7 @@ TARGET = gdrawer
 DEPENDPATH += . src
 INCLUDEPATH += . src
 macx {
-	INCLUDEPATH += /usr/local/Cellar/boost/1.53.0/include
+	INCLUDEPATH += /usr/local/Cellar/boost/1.60.0_2/include
 }
 win32 {
 	INCLUDEPATH += x:/boost

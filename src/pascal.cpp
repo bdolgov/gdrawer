@@ -9,21 +9,23 @@
 #include <QThread>
 
 #if defined(Q_OS_OSX)
-#define PREFIX "_"
+#define FPC_PREFIX "_"
 #define FPC "./fpc.sh"
+#define GCC_PREFIX ""
 #define GCC "./gcc.sh"
 #define SO ".dylib"
 #define CONVERTOR fromUtf8
 #include <dlfcn.h>
 #elif defined(Q_OS_LINUX)
-#define PREFIX ""
+#define FPC_PREFIX ""
 #define FPC "./fpc.sh"
+#define GCC_PREFIX ""
 #define GCC "./gcc.sh"
 #define SO ".so"
 #define CONVERTOR fromUtf8
 #include <dlfcn.h>
 #elif defined(Q_OS_WIN)
-#define PREFIX ""
+#define FPC_PREFIX ""
 #define FPC "fpc.bat"
 #define SO ".dll"
 #define CONVERTOR fromLocal8Bit
@@ -79,7 +81,7 @@ Vm* getPascalVm(const QString& prog)
 	  << "__r := r;\n"
 	  << "end;\n"
 	  << "exports\n"
-	  << "__r name '" << PREFIX << "pascal_run';\n"
+	  << "__r name '" << FPC_PREFIX << "pascal_run';\n"
 	  << "end.\n";
 	tmp.close();
 	
@@ -123,7 +125,7 @@ Vm* getCppVm(const QString& prog) {
 	s << "#include <cmath>\n#include <cstdlib>\n"
 	     "extern \"C\" { \n"
 	     "  bool f(double, double);\n"
-	     "  bool " PREFIX "cpp_run(double x, double y) {\n"
+	     "  bool " GCC_PREFIX "cpp_run(double x, double y) {\n"
 	     "    return f(x, y);\n"
 	     "  }\n"
 	     "#line 1\n"
